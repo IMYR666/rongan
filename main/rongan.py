@@ -184,14 +184,14 @@ class Rongan:
                     '__VIEWSTATEGENERATOR': VIEWSTATEGENERATOR,
                     'ctl00$ContentPlaceHolder2$time': 'radio4',
                     '_EVENTTARGET': 'ctl00$ContentPlaceHolder2$ddlLine',
-                    'ctl00$ContentPlaceHolder2$ddlLine': u"地铁7号线(2)",
+                    'ctl00$ContentPlaceHolder2$ddlLine': u"地铁7号线(3)",
                     'ctl00$ContentPlaceHolder2$ddlStationAndTime': u'---请选择---',
                     }
         # print formData
         # print self.rootUrl + "/Web11/logging/" + url2
         resp = self.session.post(self.rootUrl + "/Web11/logging/" + url2, data=formData, headers=self.header)
         html2 = etree.HTML(resp.text)
-
+        print resp.text
         VIEWSTATE = html2.xpath(u'//*[@id="__VIEWSTATE"]')[0].attrib['value']
         EVENTVALIDATION = html2.xpath(u'//*[@id="__EVENTVALIDATION"]')[0].attrib['value']
         VIEWSTATEGENERATOR = html2.xpath(u'//*[@id="__VIEWSTATEGENERATOR"]')[0].attrib['value']
@@ -200,8 +200,8 @@ class Rongan:
                      '__VIEWSTATEGENERATOR': VIEWSTATEGENERATOR,
                      '__EVENTTARGET': 'ctl00$ContentPlaceHolder2$btnSubmit',
                      'ctl00$ContentPlaceHolder2$time': 'radio4',
-                     'ctl00$ContentPlaceHolder2$ddlLine': u"地铁7号线(2)",
-                     'ctl00$ContentPlaceHolder2$ddlStationAndTime': u'潘广路站(2)  08:40',
+                     'ctl00$ContentPlaceHolder2$ddlLine': u"地铁7号线(3)",
+                     'ctl00$ContentPlaceHolder2$ddlStationAndTime': u'潘广路站(3)  17:40',
                      }
 
         return formData2
@@ -243,16 +243,22 @@ class Rongan:
         return classStatus
 
     def bookingOneClass(self, url, bookingFormData):
-
+        booked = 0
         formData = self.getOneClassFormData(url, bookingFormData)
         rp = self.session.post(self.rootUrl + "/Web11/logging/" + url, data=formData, headers=self.header)
         if re.search(u"综合考核", rp.text):
             print "预约成功！"
+            booked = 1
+        else:
+            print rp.text
+            print "预约失败！"
         # print rp.text
         # print url
+        return booked
 
     def bookingCarStudy(self, trainType, coachName, trainDate, trainHours):
         coachID = self.getCoachID(coachName)
+        bookedNum = 0
         if coachID is None:
             raise Exception("没有找到 %s 教练信息，请检查！" % coachName)
 
@@ -276,20 +282,33 @@ class Rongan:
             # print status[trainDate]
             for i in range(min(self.MAXCLASSOFONEDAY, len(trainHours))):
                 if trainHours[i] in status[trainDate]:
-                    self.bookingOneClass(status[trainDate][trainHours[i]], bookingFormData)
+                    booked = self.bookingOneClass(status[trainDate][trainHours[i]], bookingFormData)
+                    if booked:
+                        print "成功预约%s %s 课程" % (trainDate, trainHours[booked])
+                        bookedNum += 1
+                else:
+                    print "所选时间段已被其他学员预约！"
+        else:
+            print "所选日期无可预约课程！"
 
+        if bookedNum :
+            print "成功预约%d节课" % bookedNum
+        else:
+            print "未预约课程！"
 
 if __name__ == '__main__':
-    userName = 'test'
-    password = '123456'
+    userName = '07025089'
+    password = '633706'
 
     tType = u"场外"
-    coach = u"胡晔"
-    date = "2017-05-04"
-    hours = ["09:00", "12:30", "16:30"]
+    coach = u"赖庆华"
+    date = "2017-05-08"
+    hours = ["18:00"]
 
     stu = Rongan(userName, password)
     stu.logIn()
     if stu.session:
         print "登录成功！"
         stu.bookingCarStudy(tType, coach, date, hours)
+    # else:
+    #     print "预约失败！"
